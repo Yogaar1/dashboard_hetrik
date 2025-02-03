@@ -1,19 +1,33 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
+const { Admin } = require('../models'); 
 
-exports.verifyToken = (req, res, next) => {
-  const authHeader = req.header("Authorization");
+exports.authenticateToken = async (req, res, next) => {
+    try {
+        let token = req.headers.authorization || req.cookies.token;
+        
+        if (!token) {
+            return res.status(401).json({ message: "Unauthorized: No token provided" });
+        }
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized: Token not provided or invalid format" });
-  }
+        if (token.startsWith('Bearer ')) {
+            token = token.slice(7, token.length);
+        }
 
-  const token = authHeader.split(" ")[1];
+        console.log("Received Token:", token); 
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
-  }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const admin = await Admin.findByPk(decoded.id);
+
+        if (!admin) {
+            return res.status(401).json({ message: 'Invalid token: Admin not found' });
+        }
+
+        req.user = decoded;
+
+        next();
+    } catch (error) {
+        console.error("Token Verification Error:", error.message); 
+        return res.status(403).json({ message: "Forbidden: Invalid or expired token" });
+    }
 };

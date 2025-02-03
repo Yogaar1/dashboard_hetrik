@@ -1,10 +1,29 @@
 {
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.12.0"
-  }
+    "mysql2": "^3.12.0",
+    "nodemon": "^3.1.9",
+    "sequelize": "^6.37.5"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.6.2"
+  },
+  "scripts": {
+    "start": "npm run migrate:production && node server.js",
+    "dev": "nodemon server.js",
+    "migrate:production": "npx sequelize-cli db:migrate --env production"
+  },
+  "name": "api",
+  "version": "1.0.0",
+  "description": "API for hetrik app",
+  "main": "app.js",
+  "author": "Yoga",
+  "license": "ISC"
 }

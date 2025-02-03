@@ -1,12 +1,12 @@
-const db = require('../config/database');
+const { Berita } = require("../models"); 
 
 // Mendapatkan semua berita
-const getAllBerita = async (req, res) => {
+exports.getAllBerita = async (req, res) => {
     try {
-        const [results] = await db.query("SELECT * FROM berita");
+        const berita = await Berita.findAll();
 
         // Encode gambar ke base64 jika ada kolom gambar
-        const berita = results.map((berita) => {
+        const beritaWithImages = berita.map((berita) => {
             if (berita.image) {
                 try {
                     berita.image = `data:image/jpeg;base64,${Buffer
@@ -20,97 +20,80 @@ const getAllBerita = async (req, res) => {
             return berita;
         });
 
-        res
-            .status(200)
-            .json(berita);
+        res.status(200).json(beritaWithImages);
     } catch (err) {
         console.error("Error fetching data:", err);
-        res
-            .status(500)
-            .json({message: "Failed to fetch data"});
+        res.status(500).json({ message: "Failed to fetch data" });
     }
 };
 
 // Menambahkan berita baru
-const addBerita = async (req, res) => {
-    const {image, judul_berita, konten, tanggal_dibuat} = req.body;
+exports.addBerita = async (req, res) => {
+    const { image, judul_berita, konten, tanggal_dibuat } = req.body;
     try {
         let imageBuffer = null;
         if (image) {
             if (!/^data:image\/(png|jpeg|jpg);base64,/.test(image)) {
-                return res
-                    .status(400)
-                    .json({message: "Format gambar tidak valid"});
+                return res.status(400).json({ message: "Format gambar tidak valid" });
             }
             imageBuffer = Buffer.from(image.split(",")[1], "base64");
         }
 
-        await db.query(
-            "INSERT INTO berita (image, judul_berita, konten, tanggal_dibuat) VALUES (?, ?, ?, ?)",
-            [imageBuffer, judul_berita, konten, tanggal_dibuat ]
-        );
+        // Menambahkan berita ke database menggunakan model
+        await Berita.create({
+            image: imageBuffer,
+            judul_berita,
+            konten,
+            tanggal_dibuat
+        });
 
-        res
-            .status(201)
-            .json({message: "Berita berhasil ditambahkan"});
+        res.status(201).json({ message: "Berita berhasil ditambahkan" });
     } catch (err) {
         console.error("Error adding berita:", err);
-        res
-            .status(500)
-            .json({message: "Failed to add berita"});
+        res.status(500).json({ message: "Failed to add berita" });
     }
 };
 
 // Memperbarui berita
-const updateBerita = async (req, res) => {
-    const {id} = req.params;
-    const {image, judul_berita, konten, tanggal_dibuat} = req.body;
+exports.updateBerita = async (req, res) => {
+    const { id } = req.params;
+    const { image, judul_berita, konten, tanggal_dibuat } = req.body;
     try {
         let imageBuffer = null;
         if (image) {
             if (!/^data:image\/(png|jpeg|jpg);base64,/.test(image)) {
-                return res
-                    .status(400)
-                    .json({message: "Format gambar tidak valid"});
+                return res.status(400).json({ message: "Format gambar tidak valid" });
             }
             imageBuffer = Buffer.from(image.split(",")[1], "base64");
         }
 
-        await db.query(
-            "UPDATE berita SET image = ?, judul_berita = ?, konten = ?, tanggal_dibuat = ? WHERE id = ?",
-            [imageBuffer, judul_berita, konten, tanggal_dibuat, id]
+        // Memperbarui berita menggunakan model
+        await Berita.update(
+            { image: imageBuffer, judul_berita, konten, tanggal_dibuat },
+            { where: { id } }
         );
 
-        res
-            .status(200)
-            .json({message: "Berita berhasil diperbarui"});
+        res.status(200).json({ message: "Berita berhasil diperbarui" });
     } catch (err) {
         console.error("Error updating berita:", err);
-        res
-            .status(500)
-            .json({message: "Failed to update berita"});
+        res.status(500).json({ message: "Failed to update berita" });
     }
 };
 
 // Menghapus berita
-const deleteBerita = async (req, res) => {
-    const {id} = req.params;
+exports.deleteBerita = async (req, res) => {
+    const { id } = req.params;
     try {
-        await db.query("DELETE FROM berita WHERE id = ?", [id]);
-        res
-            .status(200)
-            .json({message: "Berita berhasil dihapus"});
+        // Menghapus berita menggunakan model
+        const deleted = await Berita.destroy({ where: { id } });
+
+        if (deleted) {
+            res.status(200).json({ message: "Berita berhasil dihapus" });
+        } else {
+            res.status(404).json({ message: "Berita tidak ditemukan" });
+        }
     } catch (err) {
         console.error("Error deleting berita:", err);
-        res
-            .status(500)
-            .json({message: "Failed to delete berita"});
+        res.status(500).json({ message: "Failed to delete berita" });
     }
-};
-
-module.exports = {
-    getAllBerita,
-    addBerita,
-    updateBerita,
-    deleteBerita
 };
